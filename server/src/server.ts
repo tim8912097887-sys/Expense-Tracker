@@ -1,7 +1,7 @@
 import { Server } from "http";
 import { initializeApp } from "./app.js";
 import { env } from "@/configs/env.js";
-import { logger } from "@/configs/logger.js";
+import { defaultLogger as logger } from "@/configs/logger/index.js";
 
 
 class AppServer {

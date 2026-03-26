@@ -1,6 +1,6 @@
 import { ErrorRequestHandler } from "express";
 import { responseEnvelope } from "@/utils/responseEnvelope.js";
-import { logger } from "@/configs/logger.js";
+import { defaultLogger as logger } from "@/configs/logger/index.js";
 
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     
