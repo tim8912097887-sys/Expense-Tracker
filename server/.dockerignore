@@ -1,0 +1,31 @@
+# Build and IDE folders
+dist/
+build/
+
+# Dependency directory
+node_modules
+
+# Enviroment and Secret
+.env*
+*.local
+
+# Documentation
+docs/
+*.md
+
+# Test related file
+**/jest.config.*
+**/jest.setup.*
+**/*.test.*
+**/*.spec.*
+**/tests/
+**/__tests__/
+coverage/
+
+# Git
+.gitignore
+.git
+
+# Log
+logs/
+**/*.log

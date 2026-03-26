@@ -18,7 +18,16 @@ const EnvSchema = z.object({
     .max(65535, "PORT cannot exceed 65535")
     .default(3000),
   LOG_LEVEL: z.enum(['error','warn','info','debug'],{ error: "Log level must be 'error','warn','info','debug'" }),
- 
+  MONGO_URI: z
+    .string()
+    .refine(
+      (url) => url.startsWith("mongodb://") || url.startsWith("mongodb+srv://"),
+      "URL must begin with mongodb:// or mongodb+srv://"
+    )
+    .regex(
+      /^mongodb(?:\+srv)?:\/\/(?:([^:]+)(?::([^@]+))?@)?([^/?]+)(?:\/([^?]+))?(?:\?(.+))?$/,
+      "String is not a valid MongoDB connection URI"
+    ),
 })
 
 const result = EnvSchema.safeParse(process.env);

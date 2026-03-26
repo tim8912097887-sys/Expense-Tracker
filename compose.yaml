@@ -1,0 +1,87 @@
+services:
+  mongo1:
+    image: mongo:latest
+    container_name: mongo1
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - 27017:27017
+    networks:
+      - expense-tracker-net
+    volumes:
+      - mongo1_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+  mongo2:
+    image: mongo:latest
+    container_name: mongo2
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - 27018:27017
+    networks:
+      - expense-tracker-net
+    volumes:
+      - mongo2_data:/data/db
+  mongo3:
+    image: mongo:latest
+    container_name: mongo3
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - 27019:27017
+    networks:
+      - expense-tracker-net
+    volumes:
+      - mongo3_data:/data/db
+  # Enable replica set
+  mongo-init:
+    image: mongo:latest
+    container_name: mongo-init
+    networks:
+      - expense-tracker-net
+    depends_on:
+      mongo1:
+        condition: service_healthy
+    entrypoint: >
+      bash -c "
+        echo 'Waiting for all nodes to be reachable...'
+        until mongosh --host mongo1:27017 --eval 'db.adminCommand(\"ping\")' && \
+              mongosh --host mongo2:27017 --eval 'db.adminCommand(\"ping\")' && \
+              mongosh --host mongo3:27017 --eval 'db.adminCommand(\"ping\")'; do
+          sleep 2
+        done
+        echo 'All nodes are up! Initiating replica set...'
+        mongosh --host mongo1:27017 --eval '
+          rs.initiate({
+            _id: \"rs0\",
+            members: [
+              { _id: 0, host: \"mongo1:27017\" },
+              { _id: 1, host: \"mongo2:27017\" },
+              { _id: 2, host: \"mongo3:27017\" }
+            ]
+          })
+        '
+      "
+  expense_tracker_server:
+    build: 
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: expense_tracker_server_container
+    ports:
+      - 3000:3000
+    env_file:
+      - ./server/.env.dev
+    networks:
+      - expense-tracker-net
+    depends_on:
+      mongo-init:
+        condition: service_completed_successfully
+    restart: always
+networks:
+  expense-tracker-net:
+    driver: bridge
+volumes:
+  mongo1_data:
+  mongo2_data:
+  mongo3_data:
