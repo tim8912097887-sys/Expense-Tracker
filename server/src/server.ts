@@ -2,6 +2,7 @@ import { Server } from "http";
 import { initializeApp } from "./app.js";
 import { env } from "@/configs/env.js";
 import { defaultLogger as logger } from "@/configs/logger/index.js";
+import { shutdown, subscribeShutdown } from "./utils/shutdown.js";
 
 
 class AppServer {
@@ -31,6 +32,8 @@ class AppServer {
        this.server = app.listen(env.PORT,() => {
            logger.info(`Server initialization: Server start on port ${env.PORT}`);
        })
+       subscribeShutdown(this.disConnectServer);
+       logger.info(`Server initialization: Successfully register shutdown`);
     } catch (error) {
       logger.error(`Server Initialization: Server fail to start,Error: ${error}`);
       process.exit(1);
@@ -61,7 +64,18 @@ class AppServer {
     },this.timeout);
 
     try {
-      const serverInstance = this.server;
+      
+      await shutdown();
+      logger.info("Shutdown complete. Goodbye!");
+      clearTimeout(forceExit);
+      process.exit(0);
+    } catch (err) {
+      logger.error("Error during shutdown:", err);
+      process.exit(1);
+    }
+  }
+  private async disConnectServer() {
+    const serverInstance = this.server;
       // Stop accepting new requests
       if (serverInstance) {
         logger.info("Closing HTTP server...");
@@ -70,14 +84,6 @@ class AppServer {
         });
         logger.info("HTTP server closed.");
       }
-    
-      logger.info("Shutdown complete. Goodbye!");
-      clearTimeout(forceExit);
-      process.exit(0);
-    } catch (err) {
-      logger.error("Error during shutdown:", err);
-      process.exit(1);
-    }
   }
 }
 
