@@ -28,6 +28,12 @@ const EnvSchema = z.object({
       /^mongodb(?:\+srv)?:\/\/(?:([^:]+)(?::([^@]+))?@)?([^/?]+)(?:\/([^?]+))?(?:\?(.+))?$/,
       "String is not a valid MongoDB connection URI"
     ),
+  SALT_ROUNDS: z.coerce.number({
+      error: "Salt must be a number",
+    })
+    .int()
+    .positive("Salt must be a positive integer")
+    .default(10),
 })
 
 const result = EnvSchema.safeParse(process.env);
