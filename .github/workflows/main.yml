@@ -14,14 +14,19 @@ jobs:
         uses: pnpm/action-setup@v3
         with:
           version: 10.26.1
+          standalone: true
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
+          cache-dependency-path: './server/pnpm-lock.yaml'
       - name: Install dependencies
         run: pnpm install
+        working-directory: ./server
       - name: Run Lint
         run: pnpm lint
+        working-directory: ./server
       - name: Run build
         run: pnpm build
+        working-directory: ./server
