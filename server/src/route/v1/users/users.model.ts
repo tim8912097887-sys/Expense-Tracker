@@ -76,11 +76,11 @@ const UserSchema = new mongoose.Schema<IUser,object,IUserMethods>({
         required: [true,"LoginAttempts required"],
         cast: '{VALUE} is not a number'
     },
-    loginAbility: {
+    lockExpired: {
         type: Number,
         // Minus one for nothing
         default: -1,
-        required: [true,"LoginAbility required"],
+        required: [true,"LockExpired required"],
         cast: '{VALUE} is not a number'
     },
     isVerified: {
@@ -88,6 +88,12 @@ const UserSchema = new mongoose.Schema<IUser,object,IUserMethods>({
         default: false,
         required: [true,"IsVerified required"],
         cast: '{VALUE} is not a boolean'
+    },
+    tokenVersion: {
+        type: Number,
+        default: 1,
+        required: [true,"Token version required"],
+        cast: '{VALUE} is not a number'
     }
 },{
     timestamps: true

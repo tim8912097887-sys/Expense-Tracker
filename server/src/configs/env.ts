@@ -34,6 +34,39 @@ const EnvSchema = z.object({
     .int()
     .positive("Salt must be a positive integer")
     .default(10),
+  ATTEMPT_TIME: z.coerce.number({
+      error: "Attemp time must be a number",
+    })
+    .int()
+    .positive("Attempt time must be a positive integer")
+    .default(3),
+  ACCOUNT_LOCK_TIME: z.coerce.number({
+      error: "Account lock time must be a number",
+    })
+    .int()
+    .positive("Account lock time must be a positive integer")
+    .default(30000),
+  SECRET_CURRENT: z.string("Current Secret should be a string").min(32,"Current Secret should be at least 32 charaters"),
+  SECRET_PREVIOUS: z.string("Previous Secret should be a string").min(32,"Previous Secret should be at least 32 charaters"),
+  TOKEN_VERSION: z.coerce.number({
+      error: "Token version must be a number",
+    })
+    .int()
+    .positive("Token version must be a positive integer")
+    .default(1),
+  TOKEN_EXPIRED: z.coerce.number({
+      error: "Token expired must be a number",
+    })
+    .int()
+    .positive("Token expired must be a positive integer")
+    .default(86400),
+  RESEND_API_KEY: z.string("Resend api key must be string"),
+  OTP_EXPIRED: z.coerce.number({
+      error: "Otp expired time must be a number",
+    })
+    .int()
+    .positive("Otp expired time must be a positive integer")
+    .default(30000)
 })
 
 const result = EnvSchema.safeParse(process.env);

@@ -8,8 +8,15 @@ export interface IUser extends mongoose.Document {
     password: string
     avatar: string
     loginAttempts: number
-    loginAbility: number
+    lockExpired: number
     isVerified: boolean
+    tokenVersion: number
+}
+
+export interface ITotp extends mongoose.Document {
+    email: string
+    otp: string
+    expiredAt: Date
 }
 
 export interface IUserMethods {
@@ -17,3 +24,16 @@ export interface IUserMethods {
 }
 
 export type UserModelType = mongoose.Model<IUser,object, IUserMethods>;
+
+export type AuthModelType = mongoose.Model<ITotp,object,object>;
+
+export type UpdatedField = {
+    loginAttempts: number
+    lockExpired?: number
+}
+
+export type Payload = {
+    sub: string
+    v: number
+    token_version: number
+}
