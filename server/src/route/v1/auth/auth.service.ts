@@ -2,23 +2,25 @@ import { authLogger } from "@/configs/logger/index.js";
 import AuthRepository from "./auth.repository.js";
 import { LoginUserType } from "./schema/login.js";
 import { CreateUserType } from "./schema/signup.js";
-import { BadRequestError, ForbiddenError, ServerError } from "@/customs/error/httpErrors.js";
+import { BadRequestError, ForbiddenError, ServerError, UnauthorizedError } from "@/customs/error/httpErrors.js";
 import { env } from "@/configs/env.js";
 import { UpdatedField } from "@/types/index.js";
 import { createToken } from "@/utils/token.js";
 import { sendEmail } from "@/utils/email.js";
 import { generateOtp } from "@/utils/generateOtp.js";
+import { VerificationType } from "./schema/verification.js";
 
 export default class AuthService {
     
     constructor(private readonly authRepository: AuthRepository) {}
 
     login = async(user: LoginUserType) => {
+        const existUser = await this.authRepository.getUserByEmail(user.email,true);
 
-        const existUser = await this.authRepository.getUserByEmail(user.email);
-        if(!existUser) throw new BadRequestError(`Email or Password is not correct`);
-        if(!existUser.isVerified) {
-            authLogger.info(`User Login: Account with email: ${existUser.email} haven't verified yet`);
+        if(!existUser || !existUser.isVerified) {
+            if(existUser) {
+                authLogger.info(`User Login: Account with email: ${existUser.email} haven't verified yet`);
+            }
             throw new BadRequestError(`Email or Password is not correct`);
         }
         // Check if it's currently locked
@@ -76,8 +78,9 @@ export default class AuthService {
     }
 
     signup = async(user: CreateUserType) => {
-         const existUser = await this.authRepository.getUserByEmail(user.email);
+         const existUser = await this.authRepository.getUserByEmail(user.email,false);
          const appName = "Expense Tracker";
+         const otp = generateOtp();
          if(existUser && existUser.isVerified) {
             authLogger.warn(`Signup User: Email ${existUser.email} has already been used`);
             const subject = `Security Alert: Duplicate Signup Attempt for ${appName}`;
@@ -94,9 +97,8 @@ export default class AuthService {
                 </div>
             `;
             await sendEmail(user.email,subject,html);
-            return;
+            return { otp };
          }
-         const otp = generateOtp();
          const expiredAt = new Date(Date.now()+env.OTP_EXPIRED);
          const createdOtp = await this.authRepository.createOtp(user.email,otp,expiredAt);
          authLogger.info(`Signup User: otp ${createdOtp.otp} successfully created for email ${createdOtp.email}`);
@@ -120,7 +122,7 @@ export default class AuthService {
             `;
              authLogger.warn(`Signup User: Email ${existUser.email} is not verified yet`);
              await sendEmail(existUser.email,subject,html);
-             return;
+             return { otp };
          }
 
          const createdUser = await this.authRepository.createUser(user);
@@ -144,6 +146,18 @@ export default class AuthService {
                 </div>
             `;
          await sendEmail(createdUser.email,subject,html);
-         return createdUser;
+         return { otp };
+    }
+
+    verifyAccount = async(verifyInfo: VerificationType) => {
+         
+        const totp = await this.authRepository.getOtp(verifyInfo.email,verifyInfo.otp);
+        if(!totp) {
+            authLogger.warn(`Verify Account: Email ${verifyInfo.email} with Otp ${verifyInfo.otp} is expired`);
+            throw new UnauthorizedError(`Otp Expired`);
+        }
+        await this.authRepository.updateUserByEmail(verifyInfo.email,{ isVerified: true });
+        authLogger.info(`Verify Account: Email ${verifyInfo.email} successfully verified`);
+        return;
     }
 }

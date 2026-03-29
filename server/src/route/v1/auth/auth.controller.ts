@@ -21,8 +21,9 @@ export default class AuthController {
 
    signupUser: RequestHandler = async(req,res) => {
       
-       await this.authService.signup(req.validData);
+       const { otp } = await this.authService.signup(req.validData);
        const data = {
+          otp,
           message: "Please check the email for verification"
        }
        res.status(201).json(responseEnvelope({
@@ -30,4 +31,17 @@ export default class AuthController {
            data
        }))
    }
+
+   verifyAccount: RequestHandler = async(req,res) => {
+      
+       await this.authService.verifyAccount(req.validData);
+       const data = {
+          message: "Please login"
+       }
+       res.status(200).json(responseEnvelope({
+           state: 'success',
+           data
+       }))
+   }
+
 }
