@@ -1,7 +1,12 @@
 name: CI - Build and Lint
 on: 
+  pull_request:
+    branches:
+      - main
+      - development
   push:
     branches:
+      - main
       - development
 jobs:
   build-and-lint:
