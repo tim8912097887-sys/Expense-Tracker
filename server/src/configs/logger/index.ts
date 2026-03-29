@@ -7,8 +7,11 @@ const dbLogger = createServiceLogger("MongoDb");
 
 const authLogger = createServiceLogger("Auth Service");
 
+const redisLogger = createServiceLogger("Redis Service");
+
 export {
     defaultLogger,
     dbLogger,
-    authLogger
+    authLogger,
+    redisLogger
 }
