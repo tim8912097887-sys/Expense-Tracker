@@ -4,15 +4,19 @@ import { LoginUserType } from "./schema/login.js";
 import { CreateUserType } from "./schema/signup.js";
 import { BadRequestError, ForbiddenError, ServerError, UnauthorizedError } from "@/customs/error/httpErrors.js";
 import { env } from "@/configs/env.js";
-import { UpdatedField } from "@/types/index.js";
+import { AuthPayload, UpdatedField } from "@/types/index.js";
 import { createToken } from "@/utils/token.js";
 import { sendEmail } from "@/utils/email.js";
 import { generateOtp } from "@/utils/generateOtp.js";
 import { VerificationType } from "./schema/verification.js";
+import { redisInstance } from "@/configs/redis.js";
 
 export default class AuthService {
     
-    constructor(private readonly authRepository: AuthRepository) {}
+    constructor(
+        private readonly authRepository: AuthRepository,
+        private readonly redisService: typeof redisInstance
+    ) {}
 
     login = async(user: LoginUserType) => {
         const existUser = await this.authRepository.getUserByEmail(user.email,true);
@@ -158,6 +162,31 @@ export default class AuthService {
         }
         await this.authRepository.updateUserByEmail(verifyInfo.email,{ isVerified: true });
         authLogger.info(`Verify Account: Email ${verifyInfo.email} successfully verified`);
+        return;
+    }
+
+    logout = async(user: AuthPayload) => {
+        
+        const isExpired = user.exp*1000<Date.now();
+        if(isExpired) {
+            authLogger.warn(`Logout: Token with jti ${user.jti} and sub ${user.sub} is already expired`);
+            throw new UnauthorizedError("Token is already expired");
+        }
+        const key = `blacklist:${user.jti}:${user.sub}`;
+        const leftTime = user.exp*1000-Date.now();
+        if(leftTime && leftTime > 0) await this.redisService.set(key, 'true', 'EX', Math.ceil(leftTime / 1000)); // Expire when token expires
+        return;
+    }
+
+    logoutAll = async(user: AuthPayload) => {
+        
+        const existUser = await this.authRepository.getUserById(user.sub,false);
+        if(!existUser) {
+            authLogger.warn(`Logout All: User with id ${user.sub} not found`);
+            throw new UnauthorizedError("Unauthenticated");
+        }
+        await this.authRepository.updateUserByEmail(existUser.email,{ tokenVersion: existUser.tokenVersion+1 });
+        authLogger.info(`Logout All: User with id ${user.sub} successfully logout all devices`);
         return;
     }
 }

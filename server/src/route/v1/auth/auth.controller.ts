@@ -44,4 +44,26 @@ export default class AuthController {
        }))
    }
 
+    logout: RequestHandler = async(req,res) => {
+        await this.authService.logout(req.user);
+        const data = {
+            message: "Logout successfully"
+        }
+        res.status(200).json(responseEnvelope({
+            state: 'success',
+            data
+        }))
+    }
+
+    logoutAll: RequestHandler = async(req,res) => {
+        await this.authService.logoutAll(req.user);
+        const data = {
+            message: "Logout all devices successfully"
+        }
+        res.status(200).json(responseEnvelope({
+            state: 'success',
+            data
+        }))
+    }
+
 }
