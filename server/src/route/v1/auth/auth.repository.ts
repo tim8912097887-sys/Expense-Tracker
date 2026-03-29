@@ -8,8 +8,13 @@ export default class AuthRepository {
         private readonly authQuery: AuthModelType
     ) {}
 
-    getUserByEmail = async(email: string) => {
-        const existUser = await this.userQuery.findOne({ email });
+    getUserByEmail = async(email: string,hasPassword: boolean) => {
+        let existUser; 
+        if(hasPassword) {
+            existUser = await this.userQuery.findOne({ email }).select("+password");
+        } else {
+            existUser = await this.userQuery.findOne({ email });
+        }
         return existUser;
     }
 
@@ -39,4 +44,18 @@ export default class AuthRepository {
         })
         return createdOtp;
     }
+
+    getOtp = async(email: string,otp: string) => {
+        
+        const currentTime = new Date();
+        const totp = await this.authQuery.findOne({
+            email,
+            otp,
+            expiredAt: {
+                $gt: currentTime
+            }
+        });  
+        return totp;
+    }
+
 }

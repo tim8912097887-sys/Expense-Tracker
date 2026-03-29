@@ -10,6 +10,7 @@ import AuthRepository from "./auth.repository.js";
 import { UserModel } from "../users/users.model.js";
 import AuthService from "./auth.service.js";
 import { AuthModel } from "./auth.model.js";
+import { VerificationSchema } from "./schema/verification.js";
 
 // Initialize Instance
 const authRepository = new AuthRepository(UserModel,AuthModel);
@@ -20,3 +21,4 @@ export const authRouter = express.Router();
 
 authRouter.post("/login",schemaValidator(LoginUserSchema),authController.loginUser);
 authRouter.post("/signup",schemaValidator(CreateUserSchema),authController.signupUser);
+authRouter.post("/verification",schemaValidator(VerificationSchema),authController.verifyAccount);
