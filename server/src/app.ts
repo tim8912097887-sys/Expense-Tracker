@@ -3,6 +3,7 @@ import morgan from 'morgan';
 import cors from "cors";
 import { errorHandler } from '@/middlewares/errorHandler.js';
 import { notFoundHandler } from '@/middlewares/notFoundHandler.js';
+import { authRouter } from './route/v1/auth/auth.route.js';
 
 export const initializeApp = () => {
 
@@ -18,7 +19,8 @@ export const initializeApp = () => {
   app.get('/health', (_req, res) => {
     res.send('OK');
   });
-  
+  // Auth route
+  app.use("/api/v1/auth",authRouter);
   // Error Handler
   app.use(errorHandler);
   app.use(notFoundHandler);

@@ -1,0 +1,34 @@
+import { env } from '@/configs/env.js';
+import { authLogger } from '@/configs/logger/index.js';
+import { Payload } from '@/types/index.js';
+import { SignJWT,jwtVerify } from 'jose';
+
+export const createToken = async(payLoad: Payload,secret: string,expiresIn: number) => {
+    const encodeSecret = new TextEncoder().encode(secret);
+    const token = await new SignJWT(payLoad)
+                             .setProtectedHeader({ alg: 'HS256' })
+                             .setIssuedAt()
+                             .setExpirationTime(expiresIn)
+                             .sign(encodeSecret);
+     return token;
+}
+
+export const verifyToken = async(token: string) => {
+    const secrets = [
+       { id: 'v2', key: new TextEncoder().encode(env.SECRET_CURRENT) },
+       { id: 'v1', key: new TextEncoder().encode(env.SECRET_PREVIOUS) }
+    ];
+
+    for (const { key } of secrets) {
+     
+        try {
+            return await jwtVerify(token,key,{
+                algorithms: ["HS256"] 
+            })
+        } catch (err: any) {
+            authLogger.error(`JWT Verification: ${err}`);
+            if (err.code === 'ERR_JWT_EXPIRED') throw err;
+            continue;
+        }
+    }
+}
