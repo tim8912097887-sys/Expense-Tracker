@@ -18,6 +18,16 @@ export default class AuthRepository {
         return existUser;
     }
 
+    getUserById = async(id: string,hasPassword: boolean) => {
+        let existUser; 
+        if(hasPassword) {
+            existUser = await this.userQuery.findOne({ _id: id }).select("+password");
+        } else {
+            existUser = await this.userQuery.findOne({ _id: id });
+        }
+        return existUser;
+    }
+
     updateUserByEmail = async(email: string,updateInfo: object) => {
         const updatedUser = this.userQuery.findOneAndUpdate({ email },{
             ...updateInfo

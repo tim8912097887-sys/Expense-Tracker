@@ -66,7 +66,9 @@ const EnvSchema = z.object({
     })
     .int()
     .positive("Otp expired time must be a positive integer")
-    .default(30000)
+    .default(30000),
+    REDIS_URL: z.string("Redis url must be string")
+              .regex(/^redis:\/\//,"Redis must start with redis://"),
 })
 
 const result = EnvSchema.safeParse(process.env);
