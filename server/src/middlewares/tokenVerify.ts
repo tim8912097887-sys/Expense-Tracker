@@ -1,6 +1,5 @@
-import { decodeJwt } from 'jose';
 import { UnauthorizedError } from "@/customs/error/httpErrors.js";
-import { versionVerify } from "@/utils/token.js";
+import { decodeToken, versionVerify } from "@/utils/token.js";
 import { authLogger } from "@/configs/logger/index.js";
 import { RequestHandler } from "express";
 import { redisInstance } from '@/configs/redis.js';
@@ -17,7 +16,11 @@ export const tokenVerify: RequestHandler = async(req,_res,next) => {
           throw new UnauthorizedError("Unauthenticated");
         } 
         const token = bearerToken.split(" ")[1];
-        const unVerified = decodeJwt(token);
+        const unVerified = await decodeToken(token);
+        if(!unVerified) {
+           authLogger.warn(`Token Verify: Could not decrypt/decode token structure`);
+           throw new UnauthorizedError("Invalid or Expired token");
+        }
         const isBlacklisted = await redisInstance.get(`blacklist:${unVerified.jti}:${unVerified.sub}`);
         if(isBlacklisted) {
           authLogger.warn(`Token Verify: ${token} is blacklisted`);

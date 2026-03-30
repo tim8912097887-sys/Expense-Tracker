@@ -16,6 +16,7 @@ export interface IUser extends mongoose.Document {
 export interface ITotp extends mongoose.Document {
     email: string
     otp: string
+    deletedAt?: Date
     expiredAt: Date
 }
 

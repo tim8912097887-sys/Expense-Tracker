@@ -38,6 +38,10 @@ const AuthSchema = new mongoose.Schema<ITotp,object,object>({
         },
         cast: '{VALUE} is not a valid string'
     },
+    deletedAt: {
+        type: Date,
+        default: null,
+    },
     expiredAt: {
         type: Date,
         required: [true, "Expiration time is required"],

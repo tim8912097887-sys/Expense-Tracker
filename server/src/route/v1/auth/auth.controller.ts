@@ -66,4 +66,38 @@ export default class AuthController {
         }))
     }
 
+    getMe: RequestHandler = async(req,res) => {
+        const user = await this.authService.getMe(req.user);
+        const data = {
+            user
+        }
+        res.status(200).json(responseEnvelope({
+            state: 'success',
+            data
+        }))
+     }
+
+    forgotPassword: RequestHandler = async(req,res) => {
+        const { otp } = await this.authService.forgotPassword(req.validData);
+        const data = {
+            otp,
+            message: "Please check your email for OTP"
+        }
+        res.status(200).json(responseEnvelope({
+            state: 'success',
+            data
+        }))
+    }
+    
+    resetPassword: RequestHandler = async(req,res) => {
+        await this.authService.resetPassword(req.validData);
+        const data = {
+            message: "Password reset successfully, please login"
+        }
+        res.status(200).json(responseEnvelope({
+            state: 'success',
+            data
+        }))
+    }
+
 }
