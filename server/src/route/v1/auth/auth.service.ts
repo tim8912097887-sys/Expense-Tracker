@@ -10,6 +10,8 @@ import { sendEmail } from "@/utils/email.js";
 import { generateOtp } from "@/utils/generateOtp.js";
 import { VerificationType } from "./schema/verification.js";
 import { redisInstance } from "@/configs/redis.js";
+import { ForgotPasswordType } from "./schema/forgotPassword.js";
+import { ResetPasswordType } from "./schema/resetPassword.js";
 
 export default class AuthService {
     
@@ -160,6 +162,9 @@ export default class AuthService {
             authLogger.warn(`Verify Account: Email ${verifyInfo.email} with Otp ${verifyInfo.otp} is expired`);
             throw new UnauthorizedError(`Otp Expired`);
         }
+        // Mark the OTP as used by setting deletedAt to current time
+        totp.deletedAt = new Date();
+        await totp.save();
         await this.authRepository.updateUserByEmail(verifyInfo.email,{ isVerified: true });
         authLogger.info(`Verify Account: Email ${verifyInfo.email} successfully verified`);
         return;
@@ -187,6 +192,91 @@ export default class AuthService {
         }
         await this.authRepository.updateUserByEmail(existUser.email,{ tokenVersion: existUser.tokenVersion+1 });
         authLogger.info(`Logout All: User with id ${user.sub} successfully logout all devices`);
+        return;
+    }
+
+    getMe = async(user: AuthPayload) => {
+        const existUser = await this.authRepository.getUserById(user.sub,false);
+        if(!existUser) {
+            authLogger.warn(`Get Me: User with id ${user.sub} not found`);
+            throw new UnauthorizedError("Unauthenticated");
+        }
+        return existUser;
+     }
+
+    forgotPassword = async(user: ForgotPasswordType) => {
+        const existUser = await this.authRepository.getUserByEmail(user.email,false);
+        if(!existUser) {
+            authLogger.warn(`Forgot Password: User with email ${user.email} not found`);
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Add delay to prevent brute-force email enumeration
+            return { otp: null };;
+        }
+        const otp = generateOtp();
+        const expiredAt = new Date(Date.now()+env.OTP_EXPIRED);
+        await this.authRepository.createOtp(user.email,otp,expiredAt);
+        const appName = "Expense Tracker";
+        const subject = `Password Reset Request for ${appName}`;
+        const html = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Your Verification Code</title>
+            </head>
+            <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; color: #333;">
+                <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid #e1e1e1;">
+                    
+                    <div style="background-color: #2563eb; padding: 30px; text-align: center;">
+                        <h1 style="margin: 0; color: #ffffff; font-size: 24px; letter-spacing: 1px;">${appName}</h1>
+                    </div>
+
+                    <div style="padding: 40px; line-height: 1.6;">
+                        <h2 style="margin-top: 0; color: #1e293b; font-size: 20px;">Password Reset Request</h2>
+                        <p>We received a request to reset your password. Use the verification code below to proceed. This code is valid for <strong>${Math.floor(env.OTP_EXPIRED / 1000)} seconds</strong>.</p>
+                        
+                        <div style="text-align: center; margin: 35px 0;">
+                            <div style="display: inline-block; background-color: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; padding: 20px 40px;">
+                                <span style="font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #2563eb;">
+                                    ${otp}
+                                </span>
+                            </div>
+                        </div>
+
+                        <p style="font-size: 14px; color: #64748b;">If you didn't request this password reset, you can safely ignore this email. Your account remains secure.</p>
+                    </div>
+
+                    <div style="padding: 20px; background-color: #f8fafc; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0;">
+                        &copy; 2026 ${appName}. Built for smarter spending.<br>
+                        Please do not reply to this automated message.
+                    </div>
+                </div>
+            </body>
+            </html>
+            `;
+        await sendEmail(existUser.email,subject,html);
+        authLogger.info(`Forgot Password: OTP ${otp} successfully sent to email ${existUser.email}`);
+        return { otp };
+    } 
+    
+    resetPassword = async(resetInfo: ResetPasswordType) => {
+        const totp = await this.authRepository.getOtp(resetInfo.email,resetInfo.otp);
+        if(!totp) {
+            authLogger.warn(`Reset Password: Email ${resetInfo.email} with Otp ${resetInfo.otp} is expired`);
+            throw new UnauthorizedError(`Otp Expired or Invalid`);
+        }
+        // Mark the OTP as used by setting deletedAt to current time
+        totp.deletedAt = new Date();
+        await totp.save();
+        const existUser = await this.authRepository.getUserByEmail(resetInfo.email,true);
+        if(!existUser) {
+            authLogger.warn(`Reset Password: User with email ${resetInfo.email} not found`);
+            throw new UnauthorizedError("Otp Expired or Invalid"); // Avoid revealing whether the email exists or not
+        }
+        existUser.password = resetInfo.password;
+        existUser.tokenVersion += 1; // Invalidate existing tokens
+        await existUser.save();
+        authLogger.info(`Reset Password: Email ${resetInfo.email} successfully reset password`);
         return;
     }
 }

@@ -13,6 +13,8 @@ import { AuthModel } from "./auth.model.js";
 import { VerificationSchema } from "./schema/verification.js";
 import { tokenVerify } from "@/middlewares/tokenVerify.js";
 import { redisInstance } from "@/configs/redis.js";
+import { ForgotPasswordSchema } from "./schema/forgotPassword.js";
+import { ResetPasswordSchema } from "./schema/resetPassword.js";
 
 // Initialize Instance
 const authRepository = new AuthRepository(UserModel,AuthModel);
@@ -26,3 +28,6 @@ authRouter.post("/signup",schemaValidator(CreateUserSchema),authController.signu
 authRouter.post("/verification",schemaValidator(VerificationSchema),authController.verifyAccount);
 authRouter.post("/logout",tokenVerify,authController.logout);
 authRouter.post("/logout-all",tokenVerify,authController.logoutAll);
+authRouter.get("/me",tokenVerify,authController.getMe);
+authRouter.post("/forgot-password",schemaValidator(ForgotPasswordSchema),authController.forgotPassword);
+authRouter.post("/reset-password",schemaValidator(ResetPasswordSchema),authController.resetPassword);

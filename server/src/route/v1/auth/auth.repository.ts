@@ -61,6 +61,7 @@ export default class AuthRepository {
         const totp = await this.authQuery.findOne({
             email,
             otp,
+            deletedAt: null,
             expiredAt: {
                 $gt: currentTime
             }
