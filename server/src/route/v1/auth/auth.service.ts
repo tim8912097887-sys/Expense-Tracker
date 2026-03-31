@@ -205,13 +205,13 @@ export default class AuthService {
      }
 
     forgotPassword = async(user: ForgotPasswordType) => {
+        const otp = generateOtp();
         const existUser = await this.authRepository.getUserByEmail(user.email,false);
         if(!existUser) {
             authLogger.warn(`Forgot Password: User with email ${user.email} not found`);
             await new Promise(resolve => setTimeout(resolve, 1000)); // Add delay to prevent brute-force email enumeration
-            return { otp: null };;
+            return { otp };
         }
-        const otp = generateOtp();
         const expiredAt = new Date(Date.now()+env.OTP_EXPIRED);
         await this.authRepository.createOtp(user.email,otp,expiredAt);
         const appName = "Expense Tracker";
